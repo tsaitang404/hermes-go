@@ -6690,15 +6690,6 @@ class L10nZh extends L10n {
   String get engineProviderBasicInfo => '基本信息';
 
   @override
-  String get engineProviderHermesPreset => '接入 Hermes Agent 网关';
-
-  @override
-  String get engineProviderHermesPresetDescription => '使用 Hermes API Server 的 OpenAI 兼容接口';
-
-  @override
-  String get engineProviderHermesBaseUrlHelp => '填写可从引擎主机访问的地址。Hermes API_SERVER_KEY 用作 API Key。';
-
-  @override
   String get engineProviderNameHint => '比如：我的网关';
 
   @override

@@ -49,12 +49,6 @@ Providers come in three groups:
 
 Your new models now appear in **Choose model**.
 
-### Hermes Agent gateway
-
-Hermes API Server exposes an OpenAI-compatible `POST /v1/chat/completions`. In **Add provider**, tap **Connect Hermes Agent gateway** and use the OpenAI protocol. Set Base URL to `http://<Hermes-host>:8642/v1`, API Key to Hermes `API_SERVER_KEY`, then tap **Fetch models**. If the server lists no models, add `hermes-agent` manually (or use the model ID advertised by that profile at `/v1/models`).
-
-Hermes binds to `127.0.0.1:8642` by default, so a loopback URL works only when the engine and Hermes run on the same host. For remote access, configure `API_SERVER_HOST` as described in Hermes' official docs and restrict network access; do not expose an unprotected endpoint to the public internet. Enable `API_SERVER_KEY` and prefer a trusted VPN or HTTPS reverse proxy.
-
 ## Model settings
 
 On a custom provider's page, tap a model to adjust:

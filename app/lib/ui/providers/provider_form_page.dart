@@ -68,7 +68,6 @@ class _ProviderFormPageState extends ConsumerState<ProviderFormPage> with FieldP
       _HeaderDraft(entry.key, entry.value, locked: isReservedProviderHeader(entry.key)),
   ];
   bool _headersOpen = false;
-  bool _hermesGatewayPreset = false;
 
   /// The provider being edited; set after a create whose key failed, so the
   /// next 「保存」 only retries what is missing.
@@ -92,12 +91,6 @@ class _ProviderFormPageState extends ConsumerState<ProviderFormPage> with FieldP
   final _fieldKeys = {for (final f in _F.values) f: GlobalKey()};
 
   bool get _isEdit => _editing != null;
-
-  String get _baseUrlHint {
-    if (_hermesGatewayPreset) return 'http://<Hermes host>:8642/v1';
-    if (_api == ProviderApi.anthropicMessages) return 'https://api.example.com';
-    return 'https://api.example.com/v1';
-  }
 
   /// A stored base is authoritative until its address or protocol is edited.
   String _baseUrlForRequest(String raw, ProviderApi api) {
@@ -214,17 +207,6 @@ class _ProviderFormPageState extends ConsumerState<ProviderFormPage> with FieldP
       selection: TextSelection.collapsed(offset: text.length),
     );
     _edited(_F.key);
-  }
-
-  void _useHermesGatewayPreset() {
-    setState(() {
-      _name.text = 'Hermes Agent';
-      _api = ProviderApi.openaiCompletions;
-      _hermesGatewayPreset = true;
-      _errors = {..._errors}..remove(_F.baseUrl);
-      _formError = null;
-      _modelsError = null;
-    });
   }
 
   Future<void> _discover() async {
@@ -374,6 +356,7 @@ class _ProviderFormPageState extends ConsumerState<ProviderFormPage> with FieldP
       final p? => snapshot?.keyStored(p) ?? p.apiKeyEnv != null,
       null => false,
     };
+    final anthropic = _api == ProviderApi.anthropicMessages;
     final busy = _saving || _discovering;
     final modelsMessage = _errors[_F.models] ?? _modelsError;
 
@@ -409,14 +392,6 @@ class _ProviderFormPageState extends ConsumerState<ProviderFormPage> with FieldP
                     ),
                   ],
                 ),
-                if (!_isEdit)
-                  SettingsTile(
-                    icon: AppIcons.fetchModels,
-                    tinted: false,
-                    title: l10n.engineProviderHermesPreset,
-                    subtitle: l10n.engineProviderHermesPresetDescription,
-                    onTap: busy ? null : _useHermesGatewayPreset,
-                  ),
               ],
             ),
             SettingsSection(
@@ -428,9 +403,7 @@ class _ProviderFormPageState extends ConsumerState<ProviderFormPage> with FieldP
                       key: _fieldKeys[_F.baseUrl],
                       error: _errors[_F.baseUrl],
                       label: 'Base URL',
-                      helper: _errors[_F.baseUrl] == null
-                          ? (_hermesGatewayPreset ? l10n.engineProviderHermesBaseUrlHelp : _baseUrlNote)
-                          : null,
+                      helper: _errors[_F.baseUrl] == null ? _baseUrlNote : null,
                       child: TextField(
                         controller: _baseUrl,
                         keyboardType: TextInputType.url,
@@ -443,7 +416,7 @@ class _ProviderFormPageState extends ConsumerState<ProviderFormPage> with FieldP
                           _edited(_F.baseUrl);
                         },
                         decoration: InputDecoration(
-                          hintText: _baseUrlHint,
+                          hintText: anthropic ? 'https://api.example.com' : 'https://api.example.com/v1',
                           error: _errors[_F.baseUrl] == null ? null : const SizedBox.shrink(),
                         ),
                       ),

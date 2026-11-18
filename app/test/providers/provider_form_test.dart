@@ -147,30 +147,6 @@ Future<void> _manualModel(WidgetTester tester) async {
 }
 
 void main() {
-  testWidgets('Hermes gateway preset selects OpenAI and guides the compatible endpoint', (tester) async {
-    final backend = FakeProviderBackend(discoverResult: const [DiscoveredModel(id: 'hermes-agent')]);
-    await _open(tester, backend);
-    await _tapVisible(tester, find.text('接入 Hermes Agent 网关'));
-
-    expect(tester.widget<TextField>(_field('名称')).controller!.text, 'Hermes Agent');
-    expect(
-      tester.widget<SegmentedPill<ProviderApi>>(find.byType(SegmentedPill<ProviderApi>)).selected,
-      ProviderApi.openaiCompletions,
-    );
-    expect(tester.widget<TextField>(_field('Base URL')).decoration.hintText, 'http://<Hermes host>:8642/v1');
-
-    await _type(tester, 'Base URL', 'http://192.0.2.10:8642/v1');
-    await _type(tester, 'API Key', 'test-key');
-    await tester.tap(find.text('获取模型'));
-    await settle(tester);
-
-    final discovery = backend.calls.lastWhere((call) => call.$1 == 'discover').$2;
-    expect(discovery['api'], 'openai-completions');
-    expect(discovery['baseURL'], 'http://192.0.2.10:8642/v1');
-    expect(discovery['apiKey'], 'test-key');
-    expect(find.text('hermes-agent'), findsOneWidget);
-  });
-
   testWidgets('late discovery preserves an endpoint edited while loading', (tester) async {
     final backend = _DelayedDiscovery();
     await _open(tester, backend);

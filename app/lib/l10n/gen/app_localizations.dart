@@ -12542,24 +12542,6 @@ abstract class L10n {
   /// **'基本信息'**
   String get engineProviderBasicInfo;
 
-  /// No description provided for @engineProviderHermesPreset.
-  ///
-  /// In zh, this message translates to:
-  /// **'接入 Hermes Agent 网关'**
-  String get engineProviderHermesPreset;
-
-  /// No description provided for @engineProviderHermesPresetDescription.
-  ///
-  /// In zh, this message translates to:
-  /// **'使用 Hermes API Server 的 OpenAI 兼容接口'**
-  String get engineProviderHermesPresetDescription;
-
-  /// No description provided for @engineProviderHermesBaseUrlHelp.
-  ///
-  /// In zh, this message translates to:
-  /// **'填写可从引擎主机访问的地址。Hermes API_SERVER_KEY 用作 API Key。'**
-  String get engineProviderHermesBaseUrlHelp;
-
   /// No description provided for @engineProviderNameHint.
   ///
   /// In zh, this message translates to:
