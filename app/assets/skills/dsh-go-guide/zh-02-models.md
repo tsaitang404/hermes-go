@@ -49,6 +49,12 @@
 
 保存后回到**选择模型**，就能选到新模型。
 
+### Hermes Agent 网关
+
+Hermes API Server 提供 OpenAI 兼容的 `POST /v1/chat/completions`。在添加渠道页点**接入 Hermes Agent 网关**，使用 OpenAI 协议；Base URL 填 `http://<Hermes 主机>:8642/v1`，API Key 填 Hermes 的 `API_SERVER_KEY`，再点**获取模型**。若模型列表为空，可手动添加 `hermes-agent`（或该 profile 在 `/v1/models` 中公布的模型 ID）。
+
+Hermes 默认只监听 `127.0.0.1:8642`，因此只有引擎和 Hermes 在同一台主机上时才能用 loopback 地址。跨主机连接需按 Hermes 官方说明设置 `API_SERVER_HOST`，并限制网络访问；不要把未经保护的接口暴露到公网。API Server 应启用 `API_SERVER_KEY`，优先通过可信 VPN 或 HTTPS 反向代理访问。
+
 ## 模型设置
 
 在自定义渠道的详情页点一个模型，可以调整：

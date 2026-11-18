@@ -7056,6 +7056,15 @@ class L10nEn extends L10n {
   String get engineProviderBasicInfo => 'Basic info';
 
   @override
+  String get engineProviderHermesPreset => 'Connect Hermes Agent gateway';
+
+  @override
+  String get engineProviderHermesPresetDescription => "Use the Hermes API Server's OpenAI-compatible endpoint";
+
+  @override
+  String get engineProviderHermesBaseUrlHelp => 'Enter an address reachable from the engine host. Use Hermes API_SERVER_KEY as the API key.';
+
+  @override
   String get engineProviderNameHint => 'e.g. My gateway';
 
   @override
