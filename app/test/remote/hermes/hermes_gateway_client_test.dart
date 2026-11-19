@@ -149,6 +149,14 @@ void main() {
               },
             }),
           );
+        } else if (method == 'session.interrupt') {
+          socket.add(
+            jsonEncode({
+              'jsonrpc': '2.0',
+              'id': id,
+              'result': {'interrupted': true},
+            }),
+          );
         } else if (method == 'session.list') {
           socket.add(
             jsonEncode({
@@ -190,6 +198,11 @@ void main() {
           {'session_id': 'stored-1', 'title': 'A saved session'},
         ],
       });
+
+      final interruptFrameFuture = inbound.stream.firstWhere((frame) => frame['method'] == 'session.interrupt');
+      final interruptResponse = client.interruptSession('stored-1');
+      expect((await interruptFrameFuture.timeout(const Duration(seconds: 2)))['params'], {'session_id': 'stored-1'});
+      expect(await interruptResponse, {'interrupted': true});
 
       final seenEvents = <HermesGatewayEvent>[];
       final eventsReceived = Completer<void>();

@@ -7,6 +7,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:dsh_app/ui/theme/app_icons.dart';
 
+import '../../l10n/l10n.dart';
 import '../../remote/hermes/hermes_gateway_client.dart';
 import '../../remote/ssh/ssh_host_config.dart';
 import '../../state/connection_state.dart' show sshTransportFactoryProvider;
@@ -39,6 +40,7 @@ class _HermesGatewayPageState extends ConsumerState<HermesGatewayPage> {
   bool _connecting = false;
   bool _handlingRequest = false;
   bool _streaming = false;
+  bool _interrupting = false;
   String? _activeRequestId;
   final Set<String> _cancelledRequestIds = {};
   VoidCallback? _dismissActiveDialog;
@@ -254,7 +256,7 @@ class _HermesGatewayPageState extends ConsumerState<HermesGatewayPage> {
                 controller: _prompt,
                 minLines: 1,
                 maxLines: 5,
-                enabled: !_busy && _activeSessionId != null,
+                enabled: !_busy && !_streaming && !_interrupting && _activeSessionId != null,
                 textInputAction: TextInputAction.newline,
                 decoration: InputDecoration(
                   hintText: tr('发送到 Hermes…', 'Send to Hermes…'),
@@ -265,11 +267,15 @@ class _HermesGatewayPageState extends ConsumerState<HermesGatewayPage> {
             ),
             const SizedBox(width: 8),
             IconButton.filled(
-              onPressed: _busy || _activeSessionId == null ? null : _sendPrompt,
-              tooltip: tr('发送', 'Send'),
-              icon: _busy
+              onPressed: _activeSessionId == null || _interrupting || _busy
+                  ? null
+                  : _streaming
+                  ? _interrupt
+                  : _sendPrompt,
+              tooltip: _streaming ? context.l10n.chatStopGenerating : tr('发送', 'Send'),
+              icon: _interrupting || _busy
                   ? const SizedBox.square(dimension: 18, child: CircularProgressIndicator(strokeWidth: 2))
-                  : const Icon(AppIcons.send),
+                  : Icon(_streaming ? AppIcons.stopGenerating : AppIcons.send),
             ),
           ],
         ),
@@ -486,9 +492,9 @@ class _HermesGatewayPageState extends ConsumerState<HermesGatewayPage> {
       if (assistantText is String && assistantText.isNotEmpty && displayKind != 'hidden') {
         setState(() {
           _lines.add(_GatewayLine(role: 'assistant', text: assistantText));
-          _streaming = inflight['streaming'] == true;
         });
       }
+      if (inflight['streaming'] == true) setState(() => _streaming = true);
       final failure = inflight['error'];
       if (failure is String && failure.isNotEmpty) {
         setState(() => _lines.add(_GatewayLine(role: 'system', text: failure, tool: true)));
@@ -501,7 +507,7 @@ class _HermesGatewayPageState extends ConsumerState<HermesGatewayPage> {
     final client = _link?.client;
     final sessionId = _activeSessionId;
     final text = _prompt.text.trim();
-    if (client == null || sessionId == null || text.isEmpty) return;
+    if (client == null || sessionId == null || text.isEmpty || _busy || _streaming || _interrupting) return;
     _prompt.clear();
     setState(() {
       _lines.add(_GatewayLine(role: 'user', text: text));
@@ -517,6 +523,23 @@ class _HermesGatewayPageState extends ConsumerState<HermesGatewayPage> {
       if (mounted) setState(() => _streaming = false);
     } finally {
       if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  Future<void> _interrupt() async {
+    final client = _link?.client;
+    final sessionId = _activeSessionId;
+    if (client == null || sessionId == null || !_streaming || _interrupting) return;
+    setState(() => _interrupting = true);
+    try {
+      // Acknowledgment is not terminal; completion/error events clear streaming.
+      await client.interruptSession(sessionId);
+    } catch (error) {
+      if (mounted && identical(_link?.client, client) && _activeSessionId == sessionId) {
+        _setError(error);
+      }
+    } finally {
+      if (mounted) setState(() => _interrupting = false);
     }
   }
 

@@ -132,3 +132,12 @@ Connections automatically try LAN / P2P, then TURN, and finally Relay without a 
 **Compact history** is off by default. Supporting DSH Remote Hosts summarize historical tool arguments and output to reduce history transfer; message text, live replies, approvals and original Host records stay unchanged. Switch to another host (or this phone) and back, or restart the app, to apply. The current client and its automatic reconnects retain their original mode to avoid mixing cached history. After turning it off, select the host again and reopen the chat to load full history. Older Hosts continue sending full history; SSH is unaffected.
 
 DSH Remote connects to one host at a time; switching disconnects the previous one. Over DSH Remote: you can send images only, DSH Web doesn't open in the app, plugins can only be turned on or off, and DS Bot and chat log export aren't available.
+
+### Hermes Gateway
+
+Add and verify the SSH host in Hosts, then open Hermes Gateway from the Quick Panel,
+select the host, and connect. The host must support `hermes gateway attach --json`.
+The app reaches the remote loopback gateway through verified SSH; no public port is needed.
+This is not a model API URL and does not replace DeepSeek Harness. Create or resume a
+remote session, and use Stop during generation to request interruption. Remote approvals
+still require your decision.

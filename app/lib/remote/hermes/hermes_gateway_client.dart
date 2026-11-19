@@ -148,6 +148,8 @@ class HermesGatewayClient {
     );
   }
 
+  Future<Object?> interruptSession(String sessionId) => request('session.interrupt', {'session_id': sessionId});
+
   void restoreOpenRequests(Object? raw) {
     if (raw is! List) return;
     for (final entry in raw) {
