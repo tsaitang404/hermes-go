@@ -834,8 +834,9 @@ class _ClarifyDialogState extends State<_ClarifyDialog> {
   Object? _answerFor(Map<String, Object?> question) {
     final id = question['qid'] as String;
     final choices = question['choices'] is List ? question['choices'] as List : const [];
-    if (choices.isEmpty)
+    if (choices.isEmpty) {
       return _textControllers[id]?.text.trim().isNotEmpty == true ? _textControllers[id]!.text.trim() : null;
+    }
     if (question['multi_select'] == true) {
       final selected = (_answers[id] as List<String>?) ?? const <String>[];
       return selected.isEmpty ? null : selected;

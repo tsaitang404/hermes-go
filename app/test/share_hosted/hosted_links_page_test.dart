@@ -58,9 +58,10 @@ Future<(FakeHost, MemoryStore)> _pump(
   final store = MemoryStore(links ?? _links);
   await tester.pumpWidget(
     testApp(
-      HostedLinksPage(clock: () => _now),
+      const HostedLinksPage(),
       brightness: brightness,
       overrides: [
+        hostedLinksClockProvider.overrideWithValue(() => _now),
         hostedLinkStoreProvider.overrideWithValue(store),
         hostedShareClientProvider.overrideWithValue(
           HostedShareClient(client: host.client, origin: 'https://go.example'),
@@ -109,6 +110,7 @@ void main() {
     final container = ProviderContainer(
       overrides: [
         operatingSystemProvider.overrideWithValue('ohos'),
+        hostedLinksClockProvider.overrideWithValue(() => _now),
         hostedLinkStoreProvider.overrideWithValue(SecureHostedLinkStore(storage)),
       ],
     );
@@ -116,24 +118,14 @@ void main() {
     final links = container.read(hostedLinksProvider.notifier);
     await links.ready;
     storage.readError = null;
-    await tester.pumpWidget(
-      UncontrolledProviderScope(
-        container: container,
-        child: testApp(HostedLinksPage(clock: () => _now)),
-      ),
-    );
+    await tester.pumpWidget(UncontrolledProviderScope(container: container, child: testApp(const HostedLinksPage())));
     await pumpFrames(tester, 6);
     expect(find.text(_links.first.title), findsOneWidget);
     storage.writeError = PlatformException(code: 'locked');
     await links.add(_links[1]);
     await tester.pumpWidget(const SizedBox());
     await tester.pump();
-    await tester.pumpWidget(
-      UncontrolledProviderScope(
-        container: container,
-        child: testApp(HostedLinksPage(clock: () => _now)),
-      ),
-    );
+    await tester.pumpWidget(UncontrolledProviderScope(container: container, child: testApp(const HostedLinksPage())));
     await pumpFrames(tester, 6);
     expect(find.text(_links[1].title), findsOneWidget);
     expect(find.textContaining('尚未保存'), findsOneWidget);
