@@ -11,7 +11,12 @@ class QuickPanelPrefs {
   const QuickPanelPrefs({this.swipe = true, this.items = defaultItems});
 
   /// What an install that never chose anything lists.
-  static const defaultItems = [DrawerDestination.plugins, DrawerDestination.engine, DrawerDestination.settings];
+  static const defaultItems = [
+    DrawerDestination.plugins,
+    DrawerDestination.engine,
+    DrawerDestination.hermesGateway,
+    DrawerDestination.settings,
+  ];
 
   /// A left swipe over the chat opens the panel.
   final bool swipe;

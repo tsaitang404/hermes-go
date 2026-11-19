@@ -13,6 +13,7 @@ import 'package:dsh_app/ui/settings/quick_panel_items_sheet.dart';
 import 'package:dsh_app/ui/shell/home_shell.dart';
 import 'package:dsh_app/ui/shell/sessions_drawer.dart' show DrawerDestination;
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -107,6 +108,9 @@ void main() {
       await _pumpHome(tester, size: narrow, brightness: brightness, textScale: 1.3, english: true);
       await _openItems(tester);
       expect(tester.takeException(), isNull);
+      final label = find.text('Hermes Gateway');
+      expect(label, findsOneWidget);
+      expect(tester.renderObject<RenderParagraph>(label).didExceedMaxLines, isFalse);
       await expectLater(find.byType(MaterialApp), matchesGoldenFile('goldens/en_quick_panel_items_320_$mode.png'));
     });
   }

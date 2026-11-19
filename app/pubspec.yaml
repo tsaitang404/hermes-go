@@ -36,6 +36,8 @@ dependencies:
     sdk: flutter
   flutter_localizations:
     sdk: flutter
+  # Flutter's Material widgets were split into this package in Flutter 3.47.
+  material_ui: ^1.9.0
   # gen-l10n output (lib/l10n/gen) imports it; version pinned by flutter_localizations.
   intl: any
 

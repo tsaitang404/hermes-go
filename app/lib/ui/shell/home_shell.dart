@@ -25,6 +25,7 @@ import '../chat/composer_toast.dart' show composerToastGap;
 import '../engine/engine_screen.dart';
 import '../engine/reset_outcome.dart';
 import '../features/all_features_page.dart';
+import '../hermes/hermes_gateway_page.dart';
 import '../forum/forum_link_host.dart';
 import '../notify/background_net_host.dart';
 import '../notify/background_pause_host.dart';
@@ -238,6 +239,7 @@ class _HomeShellState extends ConsumerState<HomeShell> with TickerProviderStateM
       DrawerDestination.remote => const RemoteScreen(),
       DrawerDestination.plugins => const PluginsScreen(),
       DrawerDestination.engine => const EngineScreen(),
+      DrawerDestination.hermesGateway => const HermesGatewayPage(),
       DrawerDestination.settings => const SettingsScreen(),
       DrawerDestination.settingsSearch => const SettingsSearchPage(),
       DrawerDestination.features => const AllFeaturesPage(),

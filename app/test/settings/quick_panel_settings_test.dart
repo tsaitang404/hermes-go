@@ -75,13 +75,16 @@ Future<void> _drag(WidgetTester tester, DrawerDestination destination, int rows)
 void main() {
   setUp(() => SharedPreferences.setMockInitialValues({}));
 
-  testWidgets('an install that never chose anything: on, 插件、本机引擎、设置, nothing stored', (tester) async {
+  testWidgets('an install that never chose anything: on, 插件、本机引擎、Hermes Gateway、设置, nothing stored', (tester) async {
     await _pump(tester);
     expect(
       tester.widget<Switch>(find.descendant(of: find.byKey(_swipeRow), matching: find.byType(Switch))).value,
       isTrue,
     );
-    expect(find.descendant(of: find.byKey(_itemsRow), matching: find.text('插件、本机引擎、设置')), findsOneWidget);
+    expect(
+      find.descendant(of: find.byKey(_itemsRow), matching: find.text('插件、本机引擎、Hermes Gateway、设置')),
+      findsOneWidget,
+    );
     expect(await _stored(), isNull);
     expect((await SharedPreferences.getInstance()).getBool(QuickPanelController.swipeKey), isNull);
   });
@@ -106,6 +109,7 @@ void main() {
     expect(_rows(tester), [
       DrawerDestination.plugins,
       DrawerDestination.engine,
+      DrawerDestination.hermesGateway,
       DrawerDestination.settings,
       DrawerDestination.web,
       DrawerDestination.remote,
@@ -120,13 +124,14 @@ void main() {
 
     await tester.tap(_sheetRow(DrawerDestination.remote));
     await _settle(tester);
-    expect(await _stored(), ['plugins', 'engine', 'settings', 'remote']);
+    expect(await _stored(), ['plugins', 'engine', 'hermesGateway', 'settings', 'remote']);
 
     await tester.tap(_sheetRow(DrawerDestination.engine));
     await _settle(tester);
-    expect(await _stored(), ['plugins', 'settings', 'remote']);
+    expect(await _stored(), ['plugins', 'hermesGateway', 'settings', 'remote']);
     expect(_container(tester).read(quickPanelProvider).items, [
       DrawerDestination.plugins,
+      DrawerDestination.hermesGateway,
       DrawerDestination.settings,
       DrawerDestination.remote,
     ]);
@@ -135,35 +140,43 @@ void main() {
     expect(_rows(tester).take(2), [DrawerDestination.plugins, DrawerDestination.engine]);
     await tester.tap(_sheetRow(DrawerDestination.engine));
     await _settle(tester);
-    expect(await _stored(), ['plugins', 'engine', 'settings', 'remote']);
+    expect(await _stored(), ['plugins', 'engine', 'hermesGateway', 'settings', 'remote']);
 
     await tester.binding.handlePopRoute();
     await _settle(tester);
-    expect(find.descendant(of: find.byKey(_itemsRow), matching: find.text('插件、本机引擎、设置、远程主机')), findsOneWidget);
+    expect(
+      find.descendant(of: find.byKey(_itemsRow), matching: find.text('插件、本机引擎、Hermes Gateway、设置、远程主机')),
+      findsOneWidget,
+    );
   });
 
   testWidgets('the handle reorders; what is ticked is stored in the rows\' order', (tester) async {
     await _pump(tester);
     await _openSheet(tester);
 
-    await _drag(tester, DrawerDestination.settings, -2);
+    await _drag(tester, DrawerDestination.settings, -3);
     expect(_rows(tester).take(3), [DrawerDestination.settings, DrawerDestination.plugins, DrawerDestination.engine]);
-    expect(await _stored(), ['settings', 'plugins', 'engine']);
+    expect(await _stored(), ['settings', 'plugins', 'engine', 'hermesGateway']);
 
     // An unticked row moved up, then ticked, takes the place it was put in.
-    await _drag(tester, DrawerDestination.features, -5);
+    await _drag(tester, DrawerDestination.features, -6);
     expect(_rows(tester).take(3), [DrawerDestination.settings, DrawerDestination.features, DrawerDestination.plugins]);
-    expect(await _stored(), ['settings', 'plugins', 'engine']);
+    expect(await _stored(), ['settings', 'plugins', 'engine', 'hermesGateway']);
     await tester.tap(_sheetRow(DrawerDestination.features));
     await _settle(tester);
-    expect(await _stored(), ['settings', 'features', 'plugins', 'engine']);
+    expect(await _stored(), ['settings', 'features', 'plugins', 'engine', 'hermesGateway']);
     expect(_container(tester).read(quickPanelProvider).items.first, DrawerDestination.settings);
   });
 
   testWidgets('nothing ticked: the row says so and there is no panel; ticking brings it back', (tester) async {
     await _pump(tester);
     await _openSheet(tester);
-    for (final d in [DrawerDestination.plugins, DrawerDestination.engine, DrawerDestination.settings]) {
+    for (final d in [
+      DrawerDestination.plugins,
+      DrawerDestination.engine,
+      DrawerDestination.hermesGateway,
+      DrawerDestination.settings,
+    ]) {
       await tester.tap(_sheetRow(d));
       await _settle(tester);
     }
@@ -248,6 +261,7 @@ void main() {
       'remote',
       'plugins',
       'engine',
+      'hermesGateway',
       'settings',
       'settingsSearch',
       'features',

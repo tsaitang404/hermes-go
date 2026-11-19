@@ -68,6 +68,7 @@ class _QuickPanelItemsSheetState extends ConsumerState<QuickPanelItemsSheet> {
             color: ticked ? scheme.primary : colors.textTertiary,
           ),
           title: destination.label(l10n),
+          titleMaxLines: 2,
           trailing: ReorderableDragStartListener(
             index: index,
             child: Semantics(
