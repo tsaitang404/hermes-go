@@ -12,6 +12,8 @@
 /// Build-time overrides (no code change needed):
 /// - `--dart-define=DSH_BETA_CHANNEL_ORIGIN=https://example.com` moves the beta
 ///   channel;
+/// - `--dart-define=DSH_UPDATE_REPO=owner/repo` selects a different release repository;
+///   upstream mirror defaults are disabled for a different repository;
 /// - `--dart-define=DSH_UPDATE_MIRROR=https://example.com` moves the copy of
 ///   the release files (empty string = none);
 /// - `--dart-define=DSH_UPDATE_FEED=https://example.com/dsh/update.json`
@@ -21,7 +23,8 @@
 library;
 
 /// GitHub repository the releases live in.
-const updateRepo = 'ccch1mneyyy/dsh-go';
+const _upstreamUpdateRepo = 'ccch1mneyyy/dsh-go';
+const updateRepo = String.fromEnvironment('DSH_UPDATE_REPO', defaultValue: _upstreamUpdateRepo);
 
 /// `releases/latest` of the REST API: tag, notes, assets with sizes and
 /// SHA-256 digests. Unauthenticated: 60 requests per hour per IP.
@@ -145,9 +148,15 @@ const publicMirrors = [
 ];
 
 const _unset = '\u0000';
-const _mirrorDefine = String.fromEnvironment('DSH_UPDATE_MIRROR', defaultValue: updateDownloadOrigin);
+const _mirrorDefine = String.fromEnvironment(
+  'DSH_UPDATE_MIRROR',
+  defaultValue: updateRepo == _upstreamUpdateRepo ? updateDownloadOrigin : '',
+);
 const _feedDefine = String.fromEnvironment('DSH_UPDATE_FEED', defaultValue: _unset);
-const _mirrorsDefine = String.fromEnvironment('DSH_UPDATE_MIRRORS', defaultValue: _unset);
+const _mirrorsDefine = String.fromEnvironment(
+  'DSH_UPDATE_MIRRORS',
+  defaultValue: updateRepo == _upstreamUpdateRepo ? _unset : '',
+);
 const _betaTokenDefine = String.fromEnvironment('DSH_BETA_CHANNEL_TOKEN');
 const _betaOriginDefine = String.fromEnvironment('DSH_BETA_CHANNEL_ORIGIN', defaultValue: updateMirrorOrigin);
 

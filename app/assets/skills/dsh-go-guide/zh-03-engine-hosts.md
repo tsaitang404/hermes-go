@@ -136,7 +136,7 @@ DSH Remote 一次只连一台主机，切换会断开上一台。经 DSH Remote 
 ### Hermes Gateway
 
 在「主机」里添加并验证 SSH 主机，在「快捷面板」打开 Hermes Gateway，
-选择主机并连接。远端需要支持 `hermes gateway attach --json`；App 通过已验证的 SSH
+选择主机并连接。远端需要支持 `hermes gateway attach --json --start`；它可能启动远端网关。App 通过已验证的 SSH
 隧道接入远端回环网关，无需向公网开放端口。这不是模型服务的 API 地址设置，
 不会替换原有 DeepSeek Harness。可创建或恢复远端对话；生成时可用停止按钮请求
 远端中断，不会自动批准远端操作。

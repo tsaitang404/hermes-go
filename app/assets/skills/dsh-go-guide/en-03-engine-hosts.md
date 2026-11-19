@@ -136,7 +136,7 @@ DSH Remote connects to one host at a time; switching disconnects the previous on
 ### Hermes Gateway
 
 Add and verify the SSH host in Hosts, then open Hermes Gateway from the Quick Panel,
-select the host, and connect. The host must support `hermes gateway attach --json`.
+select the host, and connect. The host must support `hermes gateway attach --json --start`, which may start the remote gateway.
 The app reaches the remote loopback gateway through verified SSH; no public port is needed.
 This is not a model API URL and does not replace DeepSeek Harness. Create or resume a
 remote session, and use Stop during generation to request interruption. Remote approvals

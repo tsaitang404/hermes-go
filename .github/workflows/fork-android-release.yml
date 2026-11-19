@@ -1,0 +1,193 @@
+# Fork distribution only; the original DSH Go release and mobile CI remain separate.
+name: Hermes Go Android package
+
+on:
+  workflow_dispatch:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: read
+
+concurrency:
+  group: hermes-go-apk-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  FLUTTER_VERSION: '3.47.7'
+  GRADLE_VERSION: '9.3.1'
+  BUILD_TOOLS_VERSION: '36.0.0'
+  DSH_MAVEN_MIRRORS: '0'
+
+jobs:
+  build:
+    if: github.repository == 'tsaitang404/hermes-go'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      code: ${{ steps.version.outputs.code }}
+      commit: ${{ steps.version.outputs.commit }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Check version and source
+        id: version
+        env:
+          EVENT: ${{ github.event_name }}
+          REF_NAME: ${{ github.ref_name }}
+          REF_PROTECTED: ${{ github.ref_protected }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          version=$(sed -nE 's/^version: *([^+ ]+)\+[0-9]+$/\1/p' app/pubspec.yaml)
+          [[ "$version" =~ ^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(-[0-9A-Za-z-]+(\.[0-9A-Za-z-]+)*)?$ ]]
+          commit=$(git rev-parse HEAD)
+          if [[ "$EVENT" == push ]]; then
+            [[ "$REF_PROTECTED" == true && "$REF_NAME" == "v$version" ]]
+            [[ "$commit" == "$(git rev-parse refs/remotes/origin/main)" ]]
+          fi
+          code=$(python3 tooling/build_number.py --at "$(git show -s --format=%cI "$commit")")
+          [[ "$code" =~ ^[0-9]+$ && "$code" != 1 ]]
+          printf 'version=%s\ncode=%s\ncommit=%s\n' "$version" "$code" "$commit" >> "$GITHUB_OUTPUT"
+      - name: Verify generated sources
+        run: |
+          python3 app/tool/guide_sync.py --check
+          python3 app/tool/l10n_merge.py --check
+      - uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+      - uses: gradle/actions/setup-gradle@8da46b539cd8fe6ab27ca75128919a18d757604c # v6.4.1
+        with:
+          gradle-version: ${{ env.GRADLE_VERSION }}
+          cache-disabled: true
+      - name: Prepare Android toolchain
+        run: |
+          sdkmanager "build-tools;$BUILD_TOOLS_VERSION" 'platforms;android-36' 'ndk;28.2.13676358'
+          printf 'sdk.dir=%s\nflutter.sdk=%s\n' "$ANDROID_HOME" "$FLUTTER_ROOT" > app/android/local.properties
+          (cd app && flutter pub get --enforce-lockfile)
+          (cd app/android && gradle --no-daemon wrapper --gradle-version "$GRADLE_VERSION")
+      - name: Build pinned arm64 runtime and APK candidate
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+          VERSION_CODE: ${{ steps.version.outputs.code }}
+        run: |
+          test ! -e app/android/key.properties
+          runtime/build-runtime.sh arm64-v8a
+          tooling/build-apk.sh --build-name "$VERSION" --build-number "$VERSION_CODE" -- \
+            --no-pub --dart-define=DSH_UPDATE_REPO=tsaitang404/hermes-go \
+            --dart-define=DSH_UPDATE_MIRROR= --dart-define=DSH_UPDATE_FEED= --dart-define=DSH_UPDATE_MIRRORS=
+          mkdir -p candidate
+          cp app/build/app/outputs/flutter-apk/app-arm64-release.apk candidate/hermes-go-test-only.apk
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: hermes-go-android-test-only
+          path: candidate/hermes-go-test-only.apk
+          retention-days: 3
+          compression-level: 0
+          if-no-files-found: error
+
+  sign:
+    if: github.repository == 'tsaitang404/hermes-go' && github.event_name == 'push' && github.ref_type == 'tag' && github.ref_protected
+    needs: build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    environment: android-release
+    steps:
+      # No checkout or project-provided build code runs where signing secrets exist.
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: hermes-go-android-test-only
+          path: candidate
+      - name: Set up Android signing tool
+        run: sdkmanager "build-tools;$BUILD_TOOLS_VERSION"
+      - name: Sign and verify APK
+        env:
+          VERSION: ${{ needs.build.outputs.version }}
+          KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          STORE_PASS: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEY_PASS: ${{ secrets.ANDROID_KEY_PASSWORD }}
+          EXPECTED_CERT: ${{ vars.ANDROID_CERT_SHA256 }}
+        run: |
+          set -euo pipefail
+          [[ -n "$KEYSTORE_B64" && -n "$STORE_PASS" && -n "$KEY_ALIAS" && -n "$KEY_PASS" ]] ||
+            { echo 'Stable Android signing credentials are not configured.' >&2; exit 1; }
+          [[ "$EXPECTED_CERT" =~ ^[A-Fa-f0-9]{64}$ ]] ||
+            { echo 'Set the trusted 64-character Android signing certificate SHA-256.' >&2; exit 1; }
+          umask 077
+          key_dir=$(mktemp -d)
+          trap 'rm -f "$key_dir/key.jks"; rmdir "$key_dir"' EXIT
+          printf '%s' "$KEYSTORE_B64" | base64 --decode > "$key_dir/key.jks"
+          unset KEYSTORE_B64
+          mkdir -p dist
+          apk="dist/dsh-go-$VERSION-arm64.apk"
+          apksigner="$ANDROID_HOME/build-tools/$BUILD_TOOLS_VERSION/apksigner"
+          "$apksigner" sign --ks "$key_dir/key.jks" --ks-key-alias "$KEY_ALIAS" \
+            --ks-pass env:STORE_PASS --key-pass env:KEY_PASS \
+            --min-sdk-version 21 --v1-signing-enabled true --v2-signing-enabled true --v3-signing-enabled true \
+            --out "$apk" candidate/hermes-go-test-only.apk
+          unset STORE_PASS KEY_PASS
+          verification=$("$apksigner" verify -v --min-sdk-version 21 --print-certs "$apk")
+          for scheme in v1 v2 v3; do grep -Eq "^Verified using ${scheme} scheme .*: true$" <<< "$verification"; done
+          ! grep -Fqi 'CN=Android Debug' <<< "$verification"
+          actual=$(sed -n 's/^Signer #1 certificate SHA-256 digest: //p' <<< "$verification")
+          [[ ${actual,,} == ${EXPECTED_CERT,,} ]]
+          (cd dist && sha256sum -- "dsh-go-$VERSION-arm64.apk" > SHA256SUMS)
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: hermes-go-android-signed
+          path: dist/
+          retention-days: 3
+          compression-level: 0
+          if-no-files-found: error
+
+  publish:
+    if: github.repository == 'tsaitang404/hermes-go' && github.event_name == 'push' && github.ref_type == 'tag' && github.ref_protected
+    needs: [build, sign]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: hermes-go-android-signed
+          path: dist
+      - name: Publish signed Android assets to the fork
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          TAG: ${{ github.ref_name }}
+          VERSION: ${{ needs.build.outputs.version }}
+          VERSION_CODE: ${{ needs.build.outputs.code }}
+          COMMIT: ${{ needs.build.outputs.commit }}
+        run: |
+          set -euo pipefail
+          [[ "$TAG" == "v$VERSION" ]]
+          # Reconfirm the tag was not moved while the build or environment was waiting.
+          ref=$(gh api "repos/$GH_REPO/git/ref/tags/$TAG" --jq '.object | [.type,.sha] | @tsv')
+          IFS=$'\t' read -r type sha <<< "$ref"
+          if [[ "$type" == tag ]]; then
+            ref=$(gh api "repos/$GH_REPO/git/tags/$sha" --jq '.object | [.type,.sha] | @tsv')
+            IFS=$'\t' read -r type sha <<< "$ref"
+          fi
+          [[ "$type" == commit && "$sha" == "$COMMIT" ]]
+          apk="dsh-go-$VERSION-arm64.apk"
+          (cd dist && sha256sum --check --strict SHA256SUMS)
+          digest=$(sha256sum "dist/$apk" | cut -d' ' -f1)
+          jq -n --arg version "$VERSION+$VERSION_CODE" --arg tag "$TAG" --arg name "$apk" \
+            --arg sha "$digest" --arg page "https://github.com/$GH_REPO/releases/tag/$TAG" \
+            --argjson size "$(stat -c %s "dist/$apk")" \
+            '{schema:1,version:$version,tag:$tag,title:("Hermes Go "+$version),page:$page,assets:{arm64:{name:$name,sha256:$sha,size:$size}}}' > dist/update.json
+          args=()
+          if [[ "$VERSION" == *-* ]]; then args+=(--prerelease --latest=false); fi
+          gh release create "$TAG" --verify-tag --title "Hermes Go $VERSION" --generate-notes "${args[@]}" \
+            "dist/$apk" dist/SHA256SUMS dist/update.json
