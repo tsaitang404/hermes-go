@@ -43,7 +43,10 @@ jobs:
           test ! -e app/android/key.properties
           python3 app/tool/guide_sync.py --check
           python3 app/tool/l10n_merge.py --check
-          sdkmanager 'build-tools;36.0.0' 'platforms;android-36' 'ndk;28.2.13676358'
+          sdk_root="${ANDROID_SDK_ROOT:-${ANDROID_HOME:?Android SDK not configured}}"
+          sdkmanager="$sdk_root/cmdline-tools/latest/bin/sdkmanager"
+          test -x "$sdkmanager"
+          "$sdkmanager" --sdk_root="$sdk_root" 'build-tools;36.0.0' 'platforms;android-36' 'ndk;28.2.13676358'
           printf 'sdk.dir=%s\nflutter.sdk=%s\n' "$ANDROID_HOME" "$FLUTTER_ROOT" > app/android/local.properties
           (cd app && flutter pub get --enforce-lockfile)
           (cd app/android && gradle --no-daemon wrapper --gradle-version 9.3.1)
