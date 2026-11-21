@@ -3,11 +3,13 @@
 import 'dart:async';
 import 'dart:convert';
 
-import 'package:material_ui/material_ui.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:dsh_app/ui/theme/app_icons.dart';
 
+import '../../l10n/l10n.dart';
 import '../../remote/hermes/hermes_gateway_client.dart';
+import '../../remote/hermes/hermes_gateway_direct.dart';
 import '../../remote/ssh/ssh_host_config.dart';
 import '../../state/connection_state.dart' show sshTransportFactoryProvider;
 import '../../state/hosts_state.dart' show hostsProvider, HostsState;
@@ -22,8 +24,13 @@ class HermesGatewayPage extends ConsumerStatefulWidget {
 class _HermesGatewayPageState extends ConsumerState<HermesGatewayPage> {
   final _prompt = TextEditingController();
   final _scroll = ScrollController();
+  final _gatewayUrl = TextEditingController();
+  final _gatewayUsername = TextEditingController();
+  final _gatewaySecret = TextEditingController();
+  bool _direct = true;
+  bool _useToken = false;
   String? _selectedHostId;
-  HermesGatewaySshLink? _link;
+  HermesGatewayLink? _link;
   StreamSubscription<HermesGatewayEvent>? _eventSubscription;
   StreamSubscription<HermesGatewayRequest>? _requestSubscription;
   StreamSubscription<Object>? _connectionSubscription;
@@ -55,6 +62,9 @@ class _HermesGatewayPageState extends ConsumerState<HermesGatewayPage> {
       unawaited(link.close(sessionId: _activeSessionId, subscriptionId: _activeSubscriptionId));
     }
     _prompt.dispose();
+    _gatewayUrl.dispose();
+    _gatewayUsername.dispose();
+    _gatewaySecret.dispose();
     _scroll.dispose();
     super.dispose();
   }
@@ -89,20 +99,117 @@ class _HermesGatewayPageState extends ConsumerState<HermesGatewayPage> {
             ),
         ],
       ),
-      body: Column(
-        children: [
-          _connectionBar(hosts, host, tr),
-          if (_error != null) _Banner(text: _error!, color: Theme.of(context).colorScheme.errorContainer),
-          if (_notice != null) _Banner(text: _notice!, color: Theme.of(context).colorScheme.secondaryContainer),
-          if (!connected)
-            Expanded(child: _emptyState(hosts, tr))
-          else ...[
-            _sessionPicker(tr),
-            Expanded(child: _transcript(tr)),
-            _composer(tr),
+      body: connected
+          ? Column(
+              children: [
+                if (_error != null) _Banner(text: _error!, color: Theme.of(context).colorScheme.errorContainer),
+                if (_notice != null) _Banner(text: _notice!, color: Theme.of(context).colorScheme.secondaryContainer),
+                _sessionPicker(tr),
+                Expanded(child: _transcript(tr)),
+                _composer(tr),
+              ],
+            )
+          : _connectPage(hosts, host, tr),
+    );
+  }
+
+  Widget _connectPage(HostsState hosts, SshHostConfig? host, String Function(String, String) tr) {
+    final l10n = context.l10n;
+    final enabled = !_connecting;
+    InputDecoration field(String label, {String? hint}) =>
+        InputDecoration(labelText: label, hintText: hint, border: const OutlineInputBorder());
+    return ListView(
+      padding: const EdgeInsets.all(16),
+      children: [
+        DropdownButtonFormField<bool>(
+          initialValue: _direct,
+          items: [
+            DropdownMenuItem(value: true, child: Text(l10n.hermesConnectDirect)),
+            DropdownMenuItem(value: false, child: Text(l10n.hermesConnectSsh)),
           ],
+          onChanged: enabled
+              ? (direct) => setState(() {
+                  _direct = direct!;
+                  _gatewaySecret.clear();
+                  _error = null;
+                })
+              : null,
+        ),
+        const SizedBox(height: 12),
+        if (_error != null) _Banner(text: _error!, color: Theme.of(context).colorScheme.errorContainer),
+        if (!_direct) ...[
+          _connectionBar(hosts, host, tr),
+          _emptyState(hosts, tr),
+        ] else ...[
+          TextField(
+            controller: _gatewayUrl,
+            enabled: enabled,
+            keyboardType: TextInputType.url,
+            autocorrect: false,
+            textInputAction: TextInputAction.next,
+            decoration: field(l10n.hermesGatewayUrl, hint: 'https://hermes.example.com'),
+          ),
+          const SizedBox(height: 12),
+          DropdownButtonFormField<bool>(
+            initialValue: _useToken,
+            items: [
+              DropdownMenuItem(value: false, child: Text(l10n.hermesGatewayPasswordMode)),
+              DropdownMenuItem(value: true, child: Text(l10n.hermesGatewayToken)),
+            ],
+            onChanged: enabled
+                ? (token) => setState(() {
+                    _useToken = token!;
+                    _gatewaySecret.clear();
+                    _error = null;
+                  })
+                : null,
+          ),
+          if (!_useToken) ...[
+            const SizedBox(height: 12),
+            TextField(
+              controller: _gatewayUsername,
+              enabled: enabled,
+              autocorrect: false,
+              textInputAction: TextInputAction.next,
+              decoration: field(l10n.hermesGatewayUsername),
+            ),
+          ],
+          const SizedBox(height: 12),
+          TextField(
+            controller: _gatewaySecret,
+            enabled: enabled,
+            obscureText: true,
+            autocorrect: false,
+            enableSuggestions: false,
+            textInputAction: TextInputAction.go,
+            decoration: field(_useToken ? l10n.hermesGatewayToken : l10n.hermesGatewayPassword),
+            onSubmitted: enabled ? (_) => _connectDirect() : null,
+          ),
+          const SizedBox(height: 12),
+          Text(l10n.hermesGatewayDirectHint, style: Theme.of(context).textTheme.bodySmall),
+          const SizedBox(height: 12),
+          FilledButton.icon(
+            onPressed: enabled ? _connectDirect : null,
+            icon: enabled
+                ? const Icon(AppIcons.link)
+                : const SizedBox.square(dimension: 16, child: CircularProgressIndicator(strokeWidth: 2)),
+            label: Text(enabled ? tr('连接', 'Connect') : tr('连接中', 'Connecting')),
+          ),
         ],
-      ),
+      ],
+    );
+  }
+
+  Future<void> _connectDirect() async {
+    if (_connecting || _link != null) return;
+    final address = _gatewayUrl.text;
+    final secret = _gatewaySecret.text;
+    final signIn = _useToken ? HermesGatewaySessionToken(secret) : HermesGatewayPassword(_gatewayUsername.text, secret);
+    _gatewaySecret.clear();
+    FocusScope.of(context).unfocus();
+    await _openLink(
+      () => HermesGatewayDirectLink.connect(address: address, signIn: signIn),
+      (link) => (link as HermesGatewayDirectLink).base.origin,
     );
   }
 
@@ -284,19 +391,25 @@ class _HermesGatewayPageState extends ConsumerState<HermesGatewayPage> {
     return state.ssh.isEmpty ? null : state.ssh.first;
   }
 
-  Future<void> _connect(SshHostConfig host) async {
+  Future<void> _connect(SshHostConfig host) => _openLink(() async {
+    final secrets = await ref.read(hostsProvider.notifier).loadSecrets(host.id);
+    return HermesGatewaySshLink.connect(
+      config: host,
+      secrets: secrets,
+      transportFactory: ref.read(sshTransportFactoryProvider),
+    );
+  }, (link) => 'SSH · ${host.name} · ${(link as HermesGatewaySshLink).attach.profileId}');
+
+  Future<void> _openLink(Future<HermesGatewayLink> Function() open, String Function(HermesGatewayLink) label) async {
+    if (_connecting || _link != null) return;
+    final l10n = context.l10n;
     setState(() {
       _connecting = true;
       _error = null;
       _notice = null;
     });
     try {
-      final secrets = await ref.read(hostsProvider.notifier).loadSecrets(host.id);
-      final link = await HermesGatewaySshLink.connect(
-        config: host,
-        secrets: secrets,
-        transportFactory: ref.read(sshTransportFactoryProvider),
-      );
+      final link = await open();
       if (!mounted) {
         await link.close();
         return;
@@ -305,16 +418,17 @@ class _HermesGatewayPageState extends ConsumerState<HermesGatewayPage> {
       _eventSubscription = link.client.events.listen(_onEvent, onError: _setError);
       _requestSubscription = link.client.serverRequests.listen(_onServerRequest);
       _connectionSubscription = link.client.connectionErrors.listen(_onConnectionFailure);
-      setState(() {
-        _connecting = false;
-        _notice = 'SSH · ${host.name} · ${link.attach.profileId}';
-      });
       final runtime = await link.client.request('runtime.describe');
       final sessionCreate = runtime is Map ? runtime['session_create'] : null;
       final sources = sessionCreate is Map ? sessionCreate['sources'] : null;
       if (sources is! List || !sources.contains('tui')) {
-        throw StateError('Hermes Gateway does not advertise session source "tui".');
+        throw _UnsupportedGatewaySessions();
       }
+      if (!mounted || _link != link) return;
+      setState(() {
+        _connecting = false;
+        _notice = label(link);
+      });
       await _refreshSessions();
       final selectedSession = _selectedSessionId;
       if (selectedSession != null && _sessions.any((session) => session.id == selectedSession)) {
@@ -331,9 +445,24 @@ class _HermesGatewayPageState extends ConsumerState<HermesGatewayPage> {
       final link = _link;
       _link = null;
       if (link != null) await link.close();
+      if (!mounted) return;
       setState(() {
         _connecting = false;
-        _error = error.toString();
+        _error = switch (error) {
+          _UnsupportedGatewaySessions() => l10n.hermesGatewayUnsupportedSessions,
+          HermesGatewayDirectException(:final reason) => switch (reason) {
+            HermesGatewayDirectFailure.invalidUrl => l10n.hermesGatewayInvalidUrl,
+            HermesGatewayDirectFailure.httpsRequired => l10n.hermesGatewayHttpsRequired,
+            HermesGatewayDirectFailure.credentialsRequired => l10n.hermesGatewayCredentialsRequired,
+            HermesGatewayDirectFailure.passwordUnavailable => l10n.hermesGatewayPasswordUnavailable,
+            HermesGatewayDirectFailure.rejected => l10n.hermesGatewayAuthRejected,
+            HermesGatewayDirectFailure.rateLimited => l10n.hermesGatewayRateLimited,
+            HermesGatewayDirectFailure.endpointUnavailable => l10n.hermesGatewayEndpointUnavailable,
+            HermesGatewayDirectFailure.invalidResponse => l10n.hermesGatewayInvalidResponse,
+            HermesGatewayDirectFailure.connectionFailed => l10n.hermesGatewayConnectionFailed,
+          },
+          _ => error.toString(),
+        };
       });
     }
   }
@@ -834,8 +963,9 @@ class _ClarifyDialogState extends State<_ClarifyDialog> {
   Object? _answerFor(Map<String, Object?> question) {
     final id = question['qid'] as String;
     final choices = question['choices'] is List ? question['choices'] as List : const [];
-    if (choices.isEmpty)
+    if (choices.isEmpty) {
       return _textControllers[id]?.text.trim().isNotEmpty == true ? _textControllers[id]!.text.trim() : null;
+    }
     if (question['multi_select'] == true) {
       final selected = (_answers[id] as List<String>?) ?? const <String>[];
       return selected.isEmpty ? null : selected;
@@ -1017,3 +1147,5 @@ String _choiceLabel(BuildContext context, String choice) => switch (choice) {
   'deny' => _tr(context, '拒绝', 'Deny'),
   _ => choice,
 };
+
+class _UnsupportedGatewaySessions implements Exception {}

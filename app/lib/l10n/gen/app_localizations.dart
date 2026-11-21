@@ -16226,6 +16226,114 @@ abstract class L10n {
   /// **'这台设备不能听你开口'**
   String get harmonyPluginVoiceUnavailable;
 
+  /// No description provided for @hermesConnectDirect.
+  ///
+  /// In zh, this message translates to:
+  /// **'网关直连'**
+  String get hermesConnectDirect;
+
+  /// No description provided for @hermesConnectSsh.
+  ///
+  /// In zh, this message translates to:
+  /// **'SSH 隧道'**
+  String get hermesConnectSsh;
+
+  /// No description provided for @hermesGatewayUrl.
+  ///
+  /// In zh, this message translates to:
+  /// **'网关 URL'**
+  String get hermesGatewayUrl;
+
+  /// No description provided for @hermesGatewayToken.
+  ///
+  /// In zh, this message translates to:
+  /// **'部署会话令牌'**
+  String get hermesGatewayToken;
+
+  /// No description provided for @hermesGatewayPasswordMode.
+  ///
+  /// In zh, this message translates to:
+  /// **'用户名和密码'**
+  String get hermesGatewayPasswordMode;
+
+  /// No description provided for @hermesGatewayUsername.
+  ///
+  /// In zh, this message translates to:
+  /// **'网关用户名'**
+  String get hermesGatewayUsername;
+
+  /// No description provided for @hermesGatewayPassword.
+  ///
+  /// In zh, this message translates to:
+  /// **'网关密码'**
+  String get hermesGatewayPassword;
+
+  /// No description provided for @hermesGatewayDirectHint.
+  ///
+  /// In zh, this message translates to:
+  /// **'输入 Hermes 网关的 HTTPS 地址并登录，无需 SSH。密码和令牌仅用于本次连接，不会保存。'**
+  String get hermesGatewayDirectHint;
+
+  /// No description provided for @hermesGatewayInvalidUrl.
+  ///
+  /// In zh, this message translates to:
+  /// **'请输入网关的完整地址。不要在地址里附带账号、令牌或查询参数。'**
+  String get hermesGatewayInvalidUrl;
+
+  /// No description provided for @hermesGatewayHttpsRequired.
+  ///
+  /// In zh, this message translates to:
+  /// **'远程网关必须使用 HTTPS 或 WSS；不要通过明文网络发送凭据。'**
+  String get hermesGatewayHttpsRequired;
+
+  /// No description provided for @hermesGatewayCredentialsRequired.
+  ///
+  /// In zh, this message translates to:
+  /// **'请输入网关账号和密码，或部署会话令牌。'**
+  String get hermesGatewayCredentialsRequired;
+
+  /// No description provided for @hermesGatewayPasswordUnavailable.
+  ///
+  /// In zh, this message translates to:
+  /// **'此网关未提供可用的用户名/密码登录。若管理员配置了部署会话令牌，请改用该令牌。'**
+  String get hermesGatewayPasswordUnavailable;
+
+  /// No description provided for @hermesGatewayAuthRejected.
+  ///
+  /// In zh, this message translates to:
+  /// **'网关拒绝了认证，请检查登录信息和网关认证配置。'**
+  String get hermesGatewayAuthRejected;
+
+  /// No description provided for @hermesGatewayRateLimited.
+  ///
+  /// In zh, this message translates to:
+  /// **'登录尝试太频繁，请稍后再试。'**
+  String get hermesGatewayRateLimited;
+
+  /// No description provided for @hermesGatewayEndpointUnavailable.
+  ///
+  /// In zh, this message translates to:
+  /// **'找不到 Hermes 网关的认证接口。请确认填的是 Hermes 网关地址，不是模型 API 地址。'**
+  String get hermesGatewayEndpointUnavailable;
+
+  /// No description provided for @hermesGatewayInvalidResponse.
+  ///
+  /// In zh, this message translates to:
+  /// **'服务器未返回有效的 Hermes 网关认证响应。请检查地址和网关版本。'**
+  String get hermesGatewayInvalidResponse;
+
+  /// No description provided for @hermesGatewayConnectionFailed.
+  ///
+  /// In zh, this message translates to:
+  /// **'无法连接 Hermes 网关。请检查地址、网络和 HTTPS 证书。'**
+  String get hermesGatewayConnectionFailed;
+
+  /// No description provided for @hermesGatewayUnsupportedSessions.
+  ///
+  /// In zh, this message translates to:
+  /// **'已连接到网关，但它没有开放 TUI 会话接口。请检查网关版本及权限。'**
+  String get hermesGatewayUnsupportedSessions;
+
   /// No description provided for @hostDetailsConnectionType.
   ///
   /// In zh, this message translates to:

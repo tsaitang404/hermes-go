@@ -1,0 +1,20 @@
+{
+  "hermesConnectDirect": "Direct gateway",
+  "hermesConnectSsh": "SSH tunnel",
+  "hermesGatewayUrl": "Gateway URL",
+  "hermesGatewayToken": "Deployment session token",
+  "hermesGatewayPasswordMode": "Username and password",
+  "hermesGatewayUsername": "Gateway username",
+  "hermesGatewayPassword": "Gateway password",
+  "hermesGatewayDirectHint": "Enter the HTTPS address of your Hermes gateway and sign in. No SSH is needed. Passwords and tokens are not saved.",
+  "hermesGatewayInvalidUrl": "Enter the full gateway URL. Do not include a username, token, or query parameters in it.",
+  "hermesGatewayHttpsRequired": "Remote gateways require HTTPS or WSS. Do not send credentials over cleartext connections.",
+  "hermesGatewayCredentialsRequired": "Enter the gateway username and password or a deployment session token.",
+  "hermesGatewayPasswordUnavailable": "This gateway has no supported username/password sign-in. Use a deployment session token if your administrator configured one.",
+  "hermesGatewayAuthRejected": "The gateway rejected authentication. Check your credentials and gateway authentication settings.",
+  "hermesGatewayRateLimited": "Too many sign-in attempts. Try again later.",
+  "hermesGatewayEndpointUnavailable": "The Hermes gateway authentication endpoint was not found. Use the gateway URL, not a model API URL.",
+  "hermesGatewayInvalidResponse": "The server did not return a valid Hermes gateway authentication response. Check the URL and gateway version.",
+  "hermesGatewayConnectionFailed": "Could not connect to the Hermes gateway. Check the URL, network, and HTTPS certificate.",
+  "hermesGatewayUnsupportedSessions": "The gateway connected but does not expose the TUI session API. Check its version and your permissions."
+}

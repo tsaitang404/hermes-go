@@ -275,8 +275,14 @@ class HermesGatewayClient {
   }
 }
 
+abstract interface class HermesGatewayLink {
+  HermesGatewayClient get client;
+
+  Future<void> close({String? sessionId, String? subscriptionId});
+}
+
 /// Owns the verified SSH transport, loopback forward, and Hermes Gateway socket.
-class HermesGatewaySshLink {
+class HermesGatewaySshLink implements HermesGatewayLink {
   HermesGatewaySshLink._({
     required this.transport,
     required this.forwarder,
@@ -286,6 +292,7 @@ class HermesGatewaySshLink {
 
   final SshTransport transport;
   final LocalForwarder forwarder;
+  @override
   final HermesGatewayClient client;
   final HermesGatewayAttach attach;
   bool _closed = false;
@@ -347,6 +354,7 @@ class HermesGatewaySshLink {
     }
   }
 
+  @override
   Future<void> close({String? sessionId, String? subscriptionId}) async {
     if (_closed) return;
     _closed = true;

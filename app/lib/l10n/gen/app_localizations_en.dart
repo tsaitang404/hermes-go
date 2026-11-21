@@ -9251,6 +9251,70 @@ class L10nEn extends L10n {
   String get harmonyPluginVoiceUnavailable => 'This device can\'t listen for you';
 
   @override
+  String get hermesConnectDirect => 'Direct gateway';
+
+  @override
+  String get hermesConnectSsh => 'SSH tunnel';
+
+  @override
+  String get hermesGatewayUrl => 'Gateway URL';
+
+  @override
+  String get hermesGatewayToken => 'Deployment session token';
+
+  @override
+  String get hermesGatewayPasswordMode => 'Username and password';
+
+  @override
+  String get hermesGatewayUsername => 'Gateway username';
+
+  @override
+  String get hermesGatewayPassword => 'Gateway password';
+
+  @override
+  String get hermesGatewayDirectHint =>
+      'Enter the HTTPS address of your Hermes gateway and sign in. No SSH is needed. Passwords and tokens are not saved.';
+
+  @override
+  String get hermesGatewayInvalidUrl =>
+      'Enter the full gateway URL. Do not include a username, token, or query parameters in it.';
+
+  @override
+  String get hermesGatewayHttpsRequired =>
+      'Remote gateways require HTTPS or WSS. Do not send credentials over cleartext connections.';
+
+  @override
+  String get hermesGatewayCredentialsRequired =>
+      'Enter the gateway username and password or a deployment session token.';
+
+  @override
+  String get hermesGatewayPasswordUnavailable =>
+      'This gateway has no supported username/password sign-in. Use a deployment session token if your administrator configured one.';
+
+  @override
+  String get hermesGatewayAuthRejected =>
+      'The gateway rejected authentication. Check your credentials and gateway authentication settings.';
+
+  @override
+  String get hermesGatewayRateLimited => 'Too many sign-in attempts. Try again later.';
+
+  @override
+  String get hermesGatewayEndpointUnavailable =>
+      'The Hermes gateway authentication endpoint was not found. Use the gateway URL, not a model API URL.';
+
+  @override
+  String get hermesGatewayInvalidResponse =>
+      'The server did not return a valid Hermes gateway authentication response. Check the URL and gateway version.';
+
+  @override
+  String get hermesGatewayConnectionFailed =>
+      'Could not connect to the Hermes gateway. Check the URL, network, and HTTPS certificate.';
+
+  @override
+  String get hermesGatewayUnsupportedSessions =>
+      'The gateway connected but does not expose the TUI session API. Check its version and your permissions.';
+
+  @override
   String get hostDetailsConnectionType => 'Connection type';
 
   @override

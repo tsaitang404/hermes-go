@@ -8767,6 +8767,60 @@ class L10nZh extends L10n {
   String get harmonyPluginVoiceUnavailable => '这台设备不能听你开口';
 
   @override
+  String get hermesConnectDirect => '网关直连';
+
+  @override
+  String get hermesConnectSsh => 'SSH 隧道';
+
+  @override
+  String get hermesGatewayUrl => '网关 URL';
+
+  @override
+  String get hermesGatewayToken => '部署会话令牌';
+
+  @override
+  String get hermesGatewayPasswordMode => '用户名和密码';
+
+  @override
+  String get hermesGatewayUsername => '网关用户名';
+
+  @override
+  String get hermesGatewayPassword => '网关密码';
+
+  @override
+  String get hermesGatewayDirectHint => '输入 Hermes 网关的 HTTPS 地址并登录，无需 SSH。密码和令牌仅用于本次连接，不会保存。';
+
+  @override
+  String get hermesGatewayInvalidUrl => '请输入网关的完整地址。不要在地址里附带账号、令牌或查询参数。';
+
+  @override
+  String get hermesGatewayHttpsRequired => '远程网关必须使用 HTTPS 或 WSS；不要通过明文网络发送凭据。';
+
+  @override
+  String get hermesGatewayCredentialsRequired => '请输入网关账号和密码，或部署会话令牌。';
+
+  @override
+  String get hermesGatewayPasswordUnavailable => '此网关未提供可用的用户名/密码登录。若管理员配置了部署会话令牌，请改用该令牌。';
+
+  @override
+  String get hermesGatewayAuthRejected => '网关拒绝了认证，请检查登录信息和网关认证配置。';
+
+  @override
+  String get hermesGatewayRateLimited => '登录尝试太频繁，请稍后再试。';
+
+  @override
+  String get hermesGatewayEndpointUnavailable => '找不到 Hermes 网关的认证接口。请确认填的是 Hermes 网关地址，不是模型 API 地址。';
+
+  @override
+  String get hermesGatewayInvalidResponse => '服务器未返回有效的 Hermes 网关认证响应。请检查地址和网关版本。';
+
+  @override
+  String get hermesGatewayConnectionFailed => '无法连接 Hermes 网关。请检查地址、网络和 HTTPS 证书。';
+
+  @override
+  String get hermesGatewayUnsupportedSessions => '已连接到网关，但它没有开放 TUI 会话接口。请检查网关版本及权限。';
+
+  @override
   String get hostDetailsConnectionType => '连接方式';
 
   @override
