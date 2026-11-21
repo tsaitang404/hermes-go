@@ -1,0 +1,71 @@
+name: Android APK
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: apk-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+env:
+  FLUTTER_VERSION: 3.47.7
+  ANDROID_NDK_VERSION: 28.2.13676358
+
+jobs:
+  apk:
+    # Untrusted fork PRs do not receive artifacts from this workflow.
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+
+      - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+
+      - uses: actions/setup-java@dded0888837ed1f317902acf8a20df0ad188d165 # v5.0.0
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: android-actions/setup-android@c88de45eb97006155a2b1a6a9b5b8a8f0c27ac4b # v3
+
+      - name: Install pinned Android NDK
+        run: sdkmanager "ndk;${ANDROID_NDK_VERSION}"
+
+      - name: Build and verify bundled arm64 runtime
+        run: |
+          runtime/build-runtime.sh arm64-v8a
+          python3 -I tooling/check_runtime_bundle.py arm64
+
+      - name: Build pinned tawcroot native library
+        run: python3 -I runtime/tawcroot/build.py
+
+      - name: Verify tawcroot library
+        run: test -s runtime/out-tawcroot/jniLibs/arm64-v8a/libtawcroot.so
+
+      - name: Resolve Flutter dependencies
+        working-directory: app
+        run: flutter pub get --enforce-lockfile
+
+      - name: Build debug-signed arm64 APK
+        run: tooling/build-apk.sh --debug -f arm64
+
+      - name: Upload APK
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: hermes-go-arm64-debug-apk
+          path: app/build/app/outputs/flutter-apk/app-arm64-debug.apk
+          if-no-files-found: error
+          retention-days: 14
