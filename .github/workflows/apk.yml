@@ -44,7 +44,10 @@ jobs:
           packages: platform-tools
 
       - name: Install pinned Android NDK
-        run: sdkmanager "ndk;${ANDROID_NDK_VERSION}"
+        run: |
+          sdkmanager "ndk;${ANDROID_NDK_VERSION}"
+          echo "ANDROID_NDK_HOME=${ANDROID_HOME}/ndk/${ANDROID_NDK_VERSION}" >> "$GITHUB_ENV"
+          test "$(sed -n 's/^Pkg.Revision *= *//p' "${ANDROID_HOME}/ndk/${ANDROID_NDK_VERSION}/source.properties")" = "${ANDROID_NDK_VERSION}"
 
       - name: Build and verify bundled arm64 runtime
         run: |
