@@ -39,7 +39,7 @@ jobs:
           distribution: temurin
           java-version: '17'
 
-      - uses: android-actions/setup-android@c88de45eb97006155a2b1a6a9b5b8a8f0c27ac4b # v3
+      - uses: android-actions/setup-android@9fc6c4e9069bf8d3d10b2204b1fb8f6ef7065407 # v3.2.2
 
       - name: Install pinned Android NDK
         run: sdkmanager "ndk;${ANDROID_NDK_VERSION}"
