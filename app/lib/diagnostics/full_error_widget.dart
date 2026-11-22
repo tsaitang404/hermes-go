@@ -27,6 +27,7 @@ class FullErrorWidget extends StatelessWidget {
               SelectableText(
                 details.stack?.toString() ?? '<no stack trace available>',
                 style: const TextStyle(color: Color(0xFFF2F2F2), fontFamily: 'monospace', fontSize: 12),
+                textWidthBasis: TextWidthBasis.longestLine,
               ),
             ],
           ),
