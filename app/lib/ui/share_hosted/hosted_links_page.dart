@@ -41,9 +41,7 @@ String linkExpiryText(DateTime? expiresAt, DateTime now) {
 }
 
 class HostedLinksPage extends ConsumerStatefulWidget {
-  const HostedLinksPage({super.key, this.clock = DateTime.now});
-
-  final DateTime Function() clock;
+  const HostedLinksPage({super.key});
 
   static Route<void> route() => MaterialPageRoute(builder: (_) => const HostedLinksPage());
 
@@ -131,7 +129,7 @@ class _HostedLinksPageState extends ConsumerState<HostedLinksPage> {
     });
     final state = ref.watch(hostedLinksProvider);
     final links = state.visible;
-    final now = widget.clock();
+    final now = ref.watch(hostedLinksClockProvider)();
     return AppPage.list(
       title: l10n.remoteHostedMyLinks,
       children: [

@@ -44,6 +44,9 @@ class SecureHostedLinkStore implements HostedLinkStore {
       _storage.write(key: storageKey, value: jsonEncode([for (final l in links) l.toJson()]));
 }
 
+/// Shared wall clock for expired-link retention and the links page labels.
+final hostedLinksClockProvider = Provider<DateTime Function()>((ref) => DateTime.now);
+
 final hostedLinkStoreProvider = Provider<HostedLinkStore>((ref) => const SecureHostedLinkStore());
 
 final hostedShareClientProvider = Provider<HostedShareClient>((ref) {
@@ -150,7 +153,7 @@ class HostedLinksController extends Notifier<HostedLinksState> {
     try {
       final saved = await ref.read(hostedLinkStoreProvider).load();
       if (!ref.mounted) return false;
-      final cutoff = DateTime.now().subtract(keepExpired);
+      final cutoff = ref.read(hostedLinksClockProvider)().subtract(keepExpired);
       final links = [
         for (final l in saved)
           if (l.expiresAt == null || l.expiresAt!.isAfter(cutoff)) l,
@@ -340,7 +343,7 @@ class HostedLinksController extends Notifier<HostedLinksState> {
     if (!ref.mounted) return;
     _canSave = true;
     _plainPersisted.addAll(saved.map((link) => link.id));
-    final cutoff = DateTime.now().subtract(keepExpired);
+    final cutoff = ref.read(hostedLinksClockProvider)().subtract(keepExpired);
     final links = [
       for (final l in saved)
         if (l.expiresAt == null || l.expiresAt!.isAfter(cutoff)) l,

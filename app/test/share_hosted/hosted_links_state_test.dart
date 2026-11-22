@@ -5,6 +5,7 @@ import 'package:dsh_app/share_hosted/hosted_client.dart';
 import 'package:dsh_app/share_hosted/hosted_crypto.dart';
 import 'package:dsh_app/share_hosted/hosted_link.dart';
 import 'package:dsh_app/share_hosted/hosted_links_state.dart';
+import 'package:dsh_app/state/android_features.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -53,6 +54,31 @@ void main() {
     );
     addTearDown(container.dispose);
     return (container, host, store);
+  }
+
+  for (final platform in ['android', 'ohos']) {
+    test('retention uses the shared clock and excludes the exact cutoff ($platform)', () async {
+      final now = DateTime.utc(2026, 10, 25, 12);
+      final cutoff = now.subtract(HostedLinksController.keepExpired);
+      final store = MemoryStore([
+        link('A000000001', expires: cutoff.subtract(const Duration(milliseconds: 1))),
+        link('A000000002', expires: cutoff),
+        link('A000000003', expires: cutoff.add(const Duration(milliseconds: 1))),
+        link('A000000004'),
+      ]);
+      final container = ProviderContainer(
+        overrides: [
+          operatingSystemProvider.overrideWithValue(platform),
+          hostedLinksClockProvider.overrideWithValue(() => now),
+          hostedLinkStoreProvider.overrideWithValue(store),
+        ],
+      );
+      addTearDown(container.dispose);
+      await container.read(hostedLinksProvider.notifier).ready;
+      final kept = ['A000000003', 'A000000004'];
+      expect(container.read(hostedLinksProvider).visible.map((link) => link.id), kept);
+      expect(store.saved.map((link) => link.id), kept);
+    });
   }
 
   testWidgets('publish keeps the link, newest first, in secure storage', (tester) async {
