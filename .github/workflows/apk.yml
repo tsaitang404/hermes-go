@@ -43,6 +43,12 @@ jobs:
         with:
           packages: platform-tools
 
+      # The regression tests load the same real fonts used by CI goldens.
+      - name: Install test fonts
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y --no-install-recommends fonts-noto-cjk
+
       - name: Install pinned Android NDK
         run: |
           sdkmanager "ndk;${ANDROID_NDK_VERSION}"
