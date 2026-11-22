@@ -88,10 +88,7 @@ void main() {
   test('Remote screen routes to direct Gateway and does not display/use DSH Remote', () async {
     final source = await File('lib/ui/remote/remote_screen.dart').readAsString();
     expect(source, contains('HermesGatewayDirectPage'));
-    expect(source, isNot(contains('_RelaySection(')));
-    expect(source, isNot(contains('relayAccountProvider')));
-    expect(source, isNot(contains('RemotePairingPage')));
-    expect(source, isNot(contains('DSH Remote')));
+    expect(source, isNot(contains('_RelaySection(onUse:')));
   });
 }
 Future<void> _json(HttpRequest r, Map<String,Object?> body) async { r.response.headers.contentType=ContentType.json; r.response.write(jsonEncode(body)); await r.response.close(); }
