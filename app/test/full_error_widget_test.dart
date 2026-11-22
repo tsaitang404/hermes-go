@@ -10,7 +10,8 @@ void main() {
     await tester.pumpWidget(FullErrorWidget(details: FlutterErrorDetails(exception: error, stack: stack)));
 
     expect(find.text('Bad state: complete exception details'), findsOneWidget);
-    expect(find.text('#99 package:test/file.dart:100:2'), findsOneWidget);
+    final stackText = tester.widgetList<SelectableText>(find.byType(SelectableText)).map((text) => text.data ?? '').join('\n');
+    expect(stackText, contains('#99 package:test/file.dart:100:2'));
     expect(find.byType(SingleChildScrollView), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
