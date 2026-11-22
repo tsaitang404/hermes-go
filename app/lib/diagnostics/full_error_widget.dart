@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart' show SelectableText, SelectionArea;
+import 'package:flutter/material.dart' show SelectableText;
 import 'package:flutter/widgets.dart';
 
 /// Plain, scrollable error details that work before Material localization exists.
@@ -24,8 +24,9 @@ class FullErrorWidget extends StatelessWidget {
               SelectableText(details.exceptionAsString(), style: const TextStyle(color: Color(0xFFF2F2F2), fontSize: 14)),
               const SizedBox(height: 16),
               const Text('Stack trace', style: TextStyle(color: Color(0xFFF2F2F2), fontWeight: FontWeight.bold)),
-              SelectionArea(
-                child: Text(
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: SelectableText(
                   details.stack?.toString() ?? '<no stack trace available>',
                   style: const TextStyle(color: Color(0xFFF2F2F2), fontFamily: 'monospace', fontSize: 12),
                 ),
