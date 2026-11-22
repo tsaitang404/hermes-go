@@ -50,8 +50,8 @@ jobs:
         working-directory: ${{ runner.temp }}
         run: |
           sudo apt-get update -q
-          apt-get download fonts-noto-cjk="$NOTO_CJK_VERSION"
-          dpkg-deb -x fonts-noto-cjk*.deb unpacked
+          apt-get download fonts-noto-cjk="$NOTO_CJK_VERSION" fonts-noto-cjk-extra="$NOTO_CJK_VERSION"
+          for deb in fonts-noto-cjk*.deb; do dpkg-deb -x "$deb" unpacked; done
           sudo install -Dm644 -t /usr/share/fonts/noto-cjk unpacked/usr/share/fonts/opentype/noto/NotoSansCJK-{Regular,Bold,Light}.ttc
 
       - name: Install pinned Android NDK
