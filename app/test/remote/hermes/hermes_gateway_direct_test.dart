@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:dsh_app/remote/hermes/hermes_gateway_client.dart';
 import 'package:dsh_app/remote/hermes/hermes_gateway_direct.dart';
 import 'package:flutter_test/flutter_test.dart';
 
