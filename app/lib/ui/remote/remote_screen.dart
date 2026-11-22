@@ -11,6 +11,7 @@ import '../../runtime/runtime_state.dart';
 import '../../state/app_info.dart';
 import '../../state/connection_state.dart';
 import '../../state/hosts_state.dart';
+import '../../remote/hermes/hermes_gateway_direct_page.dart';
 import '../common/app_dialog.dart';
 import '../common/ask_ai.dart';
 import '../common/overview_card.dart';
@@ -97,7 +98,19 @@ class RemoteScreen extends ConsumerWidget {
       actions: const [AskAiButton(AskAiTopic.remote)],
       children: [
         _ActiveCard(active: active),
-        _RelaySection(onUse: (h) => _use(context, ref, h)),
+        SettingsSection(
+          title: 'Hermes Gateway',
+          footer: const Text('Connect directly to Hermes Gateway with its address and password.'),
+          children: [
+            SettingsTile(
+              icon: AppIcons.link,
+              tinted: false,
+              title: 'Connect to Hermes Gateway',
+              subtitle: 'Direct connection · password sign-in',
+              onTap: () => push(const HermesGatewayDirectPage()),
+            ),
+          ],
+        ),
         SettingsSection(
           title: l10n.remoteTransferSettings,
           children: [

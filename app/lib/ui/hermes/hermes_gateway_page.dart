@@ -8,12 +8,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:dsh_app/ui/theme/app_icons.dart';
 
 import '../../remote/hermes/hermes_gateway_client.dart';
+import '../../remote/hermes/hermes_gateway_direct.dart';
 import '../../remote/ssh/ssh_host_config.dart';
 import '../../state/connection_state.dart' show sshTransportFactoryProvider;
 import '../../state/hosts_state.dart' show hostsProvider, HostsState;
 
 class HermesGatewayPage extends ConsumerStatefulWidget {
-  const HermesGatewayPage({super.key});
+  const HermesGatewayPage({super.key, this.directLink});
+  final HermesGatewayDirectLink? directLink;
 
   @override
   ConsumerState<HermesGatewayPage> createState() => _HermesGatewayPageState();
@@ -24,6 +26,7 @@ class _HermesGatewayPageState extends ConsumerState<HermesGatewayPage> {
   final _scroll = ScrollController();
   String? _selectedHostId;
   HermesGatewaySshLink? _link;
+  HermesGatewayDirectLink? _directLink;
   StreamSubscription<HermesGatewayEvent>? _eventSubscription;
   StreamSubscription<HermesGatewayRequest>? _requestSubscription;
   StreamSubscription<Object>? _connectionSubscription;
@@ -44,12 +47,20 @@ class _HermesGatewayPageState extends ConsumerState<HermesGatewayPage> {
   VoidCallback? _dismissActiveDialog;
 
   @override
+  void initState() {
+    super.initState();
+    final direct = widget.directLink;
+    if (direct != null) unawaited(openDirect(direct));
+  }
+
+  @override
   void dispose() {
     _eventSubscription?.cancel();
     _requestSubscription?.cancel();
     _connectionSubscription?.cancel();
     _dismissActiveDialog?.call();
     _dismissActiveDialog = null;
+    if (_directLink != null) unawaited(_directLink!.close());
     final link = _link;
     if (link != null) {
       unawaited(link.close(sessionId: _activeSessionId, subscriptionId: _activeSubscriptionId));
@@ -60,10 +71,13 @@ class _HermesGatewayPageState extends ConsumerState<HermesGatewayPage> {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context) => _buildGatewayPage(context);
+
+  Widget _buildGatewayPage(BuildContext context) {
     final hosts = ref.watch(hostsProvider);
     final host = _findHost(hosts);
-    final connected = _link != null;
+    final direct = _directLink != null;
+    final connected = _link != null || direct;
     final localeZh = Localizations.localeOf(context).languageCode == 'zh';
     String tr(String zh, String en) => localeZh ? zh : en;
 
@@ -91,7 +105,7 @@ class _HermesGatewayPageState extends ConsumerState<HermesGatewayPage> {
       ),
       body: Column(
         children: [
-          _connectionBar(hosts, host, tr),
+          _connectionBar(hosts, host, tr, direct: direct),
           if (_error != null) _Banner(text: _error!, color: Theme.of(context).colorScheme.errorContainer),
           if (_notice != null) _Banner(text: _notice!, color: Theme.of(context).colorScheme.secondaryContainer),
           if (!connected)
@@ -106,8 +120,14 @@ class _HermesGatewayPageState extends ConsumerState<HermesGatewayPage> {
     );
   }
 
-  Widget _connectionBar(HostsState hosts, SshHostConfig? host, String Function(String, String) tr) {
-    final connected = _link != null;
+  Widget _connectionBar(HostsState hosts, SshHostConfig? host, String Function(String, String) tr, {required bool direct}) {
+    if (direct) {
+      return Padding(
+        padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+        child: Row(children: [const Icon(AppIcons.link), const SizedBox(width: 10), Expanded(child: Text(_notice ?? 'Direct Gateway connection'))]),
+      );
+    }
+    final connected = _link != null || _directLink != null;
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
       child: Row(
@@ -277,11 +297,36 @@ class _HermesGatewayPageState extends ConsumerState<HermesGatewayPage> {
     );
   }
 
+  HermesGatewayClient? get _client => _directLink?.client ?? _link?.client;
+  String? get _connectionLabel => _directLink == null ? null : 'Direct · ${_directLink!.base.host}';
+
   SshHostConfig? _findHost(HostsState state) {
     for (final host in state.ssh) {
       if (host.id == _selectedHostId) return host;
     }
     return state.ssh.isEmpty ? null : state.ssh.first;
+  }
+
+  Future<void> openDirect(HermesGatewayDirectLink link) async {
+    if (_link != null || _directLink != null) await _disconnect();
+    if (!mounted) { await link.close(); return; }
+    _directLink = link;
+    _eventSubscription = link.client.events.listen(_onEvent, onError: _setError);
+    _requestSubscription = link.client.serverRequests.listen(_onServerRequest);
+    _connectionSubscription = link.client.connectionErrors.listen(_onConnectionFailure);
+    setState(() { _error = null; _notice = 'Direct · ${link.base.host}'; });
+    try {
+      final runtime = await link.client.request('runtime.describe');
+      final sessionCreate = runtime is Map ? runtime['session_create'] : null;
+      final sources = sessionCreate is Map ? sessionCreate['sources'] : null;
+      if (sources is! List || !sources.contains('tui')) throw StateError('Hermes Gateway does not advertise session source "tui".');
+      await _refreshSessions();
+      final selectedSession = _selectedSessionId;
+      if (selectedSession != null && _sessions.any((session) => session.id == selectedSession)) await _resumeSession(selectedSession);
+    } catch (error) {
+      _setError(error);
+      await _handleConnectionFailure(error);
+    }
   }
 
   Future<void> _connect(SshHostConfig host) async {
@@ -339,6 +384,9 @@ class _HermesGatewayPageState extends ConsumerState<HermesGatewayPage> {
   }
 
   Future<void> _disconnect() async {
+    final direct = _directLink;
+    _directLink = null;
+    if (direct != null) await direct.close();
     final link = _link;
     final sessionId = _activeSessionId;
     final subscriptionId = _activeSubscriptionId;
@@ -367,7 +415,7 @@ class _HermesGatewayPageState extends ConsumerState<HermesGatewayPage> {
   }
 
   Future<void> _refreshSessions() async {
-    final client = _link?.client;
+    final client = _client;
     if (client == null) return;
     try {
       final raw = await client.request('session.list', const {
@@ -389,7 +437,7 @@ class _HermesGatewayPageState extends ConsumerState<HermesGatewayPage> {
   }
 
   Future<void> _createSession() async {
-    final client = _link?.client;
+    final client = _client;
     if (client == null) return;
     final previousSessionId = _activeSessionId;
     final previousSubscriptionId = _activeSubscriptionId;
@@ -415,7 +463,7 @@ class _HermesGatewayPageState extends ConsumerState<HermesGatewayPage> {
   }
 
   Future<void> _resumeSession(String id) async {
-    final client = _link?.client;
+    final client = _client;
     if (client == null) return;
     final previousSessionId = _activeSessionId;
     final previousSubscriptionId = _activeSubscriptionId;
@@ -450,7 +498,7 @@ class _HermesGatewayPageState extends ConsumerState<HermesGatewayPage> {
   }
 
   Future<void> _attachSnapshot(String id, Object? raw, {String? selectedId}) async {
-    final client = _link?.client;
+    final client = _client;
     if (client == null) return;
     final snapshot = raw is Map ? Map<String, Object?>.from(raw) : const <String, Object?>{};
     final nested = snapshot['snapshot'] is Map ? Map<String, Object?>.from(snapshot['snapshot'] as Map) : snapshot;
@@ -498,7 +546,7 @@ class _HermesGatewayPageState extends ConsumerState<HermesGatewayPage> {
   }
 
   Future<void> _sendPrompt() async {
-    final client = _link?.client;
+    final client = _client;
     final sessionId = _activeSessionId;
     final text = _prompt.text.trim();
     if (client == null || sessionId == null || text.isEmpty) return;
@@ -610,11 +658,11 @@ class _HermesGatewayPageState extends ConsumerState<HermesGatewayPage> {
         try {
           if (request.method == 'approval') {
             final choice = await _askApproval(request);
-            if (!_cancelledRequestIds.remove(request.id)) _link?.client.respond(request.id, {'choice': choice});
+            if (!_cancelledRequestIds.remove(request.id)) _client?.respond(request.id, {'choice': choice});
           } else if (request.method == 'clarify') {
             final answers = await _askClarify(request);
             if (!_cancelledRequestIds.remove(request.id)) {
-              _link?.client.respond(
+              _client?.respond(
                 request.id,
                 answers == null ? const {} : {'answers': hermesGatewayClarifyAnswers(answers), 'outcome': 'submitted'},
               );
@@ -705,6 +753,9 @@ class _HermesGatewayPageState extends ConsumerState<HermesGatewayPage> {
   }
 
   Future<void> _handleConnectionFailure(Object error) async {
+    final direct = _directLink;
+    _directLink = null;
+    if (direct != null) await direct.close();
     final link = _link;
     _link = null;
     await _eventSubscription?.cancel();
@@ -725,7 +776,7 @@ class _HermesGatewayPageState extends ConsumerState<HermesGatewayPage> {
       _busy = false;
       _error = error.toString();
       _notice = _selectedSessionId == null
-          ? null
+          ? _connectionLabel
           : _tr(context, '连接中断；重新连接后会尝试恢复当前会话。', 'Connection lost; reconnect to restore the active session.');
     });
   }
