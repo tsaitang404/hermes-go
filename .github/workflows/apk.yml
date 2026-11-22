@@ -16,6 +16,7 @@ concurrency:
 env:
   FLUTTER_VERSION: 3.47.7
   ANDROID_NDK_VERSION: 28.2.13676358
+  NOTO_CJK_VERSION: 1:20230817+repack1-3
 
 jobs:
   apk:
@@ -43,11 +44,15 @@ jobs:
         with:
           packages: platform-tools
 
-      # The regression tests load the same real fonts used by CI goldens.
+      # Download pinned font files as in the golden-test workflow; package layout
+      # on the Android runner does not match test_fonts.dart's expected path.
       - name: Install test fonts
+        working-directory: ${{ runner.temp }}
         run: |
           sudo apt-get update -q
-          sudo apt-get install -y --no-install-recommends fonts-noto-cjk
+          apt-get download fonts-noto-cjk="$NOTO_CJK_VERSION"
+          dpkg-deb -x fonts-noto-cjk*.deb unpacked
+          sudo install -Dm644 -t /usr/share/fonts/noto-cjk unpacked/usr/share/fonts/opentype/noto/NotoSansCJK-{Regular,Bold,Light}.ttc
 
       - name: Install pinned Android NDK
         run: |
