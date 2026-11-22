@@ -64,6 +64,10 @@ jobs:
         working-directory: app
         run: flutter pub get --enforce-lockfile
 
+      - name: Run full error widget regression tests
+        working-directory: app
+        run: flutter test --no-pub test/full_error_widget_test.dart
+
       - name: Build debug-signed arm64 APK
         run: tooling/build-apk.sh --debug -f arm64
 
