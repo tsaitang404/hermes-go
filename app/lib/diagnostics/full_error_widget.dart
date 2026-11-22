@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart' show SelectableText;
 import 'package:flutter/widgets.dart';
 
 /// Plain, scrollable error details that work before Material localization exists.

@@ -4,7 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   testWidgets('shows complete exception and stack in a scrollable without MaterialLocalizations', (tester) async {
-    const error = StateError('complete exception details');
+    final error = StateError('complete exception details');
     final stack = StackTrace.fromString(List.generate(100, (i) => '#$i package:test/file.dart:${i + 1}:2').join('\n'));
 
     await tester.pumpWidget(FullErrorWidget(details: FlutterErrorDetails(exception: error, stack: stack)));
