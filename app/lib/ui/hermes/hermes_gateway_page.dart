@@ -120,11 +120,22 @@ class _HermesGatewayPageState extends ConsumerState<HermesGatewayPage> {
     );
   }
 
-  Widget _connectionBar(HostsState hosts, SshHostConfig? host, String Function(String, String) tr, {required bool direct}) {
+  Widget _connectionBar(
+    HostsState hosts,
+    SshHostConfig? host,
+    String Function(String, String) tr, {
+    required bool direct,
+  }) {
     if (direct) {
       return Padding(
         padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
-        child: Row(children: [const Icon(AppIcons.link), const SizedBox(width: 10), Expanded(child: Text(_notice ?? 'Direct Gateway connection'))]),
+        child: Row(
+          children: [
+            const Icon(AppIcons.link),
+            const SizedBox(width: 10),
+            Expanded(child: Text(_notice ?? 'Direct Gateway connection')),
+          ],
+        ),
       );
     }
     final connected = _link != null || _directLink != null;
@@ -309,20 +320,28 @@ class _HermesGatewayPageState extends ConsumerState<HermesGatewayPage> {
 
   Future<void> openDirect(HermesGatewayDirectLink link) async {
     if (_link != null || _directLink != null) await _disconnect();
-    if (!mounted) { await link.close(); return; }
+    if (!mounted) {
+      await link.close();
+      return;
+    }
     _directLink = link;
     _eventSubscription = link.client.events.listen(_onEvent, onError: _setError);
     _requestSubscription = link.client.serverRequests.listen(_onServerRequest);
     _connectionSubscription = link.client.connectionErrors.listen(_onConnectionFailure);
-    setState(() { _error = null; _notice = 'Direct · ${link.base.host}'; });
+    setState(() {
+      _error = null;
+      _notice = 'Direct · ${link.base.host}';
+    });
     try {
       final runtime = await link.client.request('runtime.describe');
       final sessionCreate = runtime is Map ? runtime['session_create'] : null;
       final sources = sessionCreate is Map ? sessionCreate['sources'] : null;
-      if (sources is! List || !sources.contains('tui')) throw StateError('Hermes Gateway does not advertise session source "tui".');
+      if (sources is! List || !sources.contains('tui'))
+        throw StateError('Hermes Gateway does not advertise session source "tui".');
       await _refreshSessions();
       final selectedSession = _selectedSessionId;
-      if (selectedSession != null && _sessions.any((session) => session.id == selectedSession)) await _resumeSession(selectedSession);
+      if (selectedSession != null && _sessions.any((session) => session.id == selectedSession))
+        await _resumeSession(selectedSession);
     } catch (error) {
       _setError(error);
       await _handleConnectionFailure(error);
