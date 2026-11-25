@@ -1,3 +1,4 @@
+import 'package:dsh_app/app.dart';
 import 'package:dsh_app/diagnostics/full_error_widget.dart';
 import 'package:flutter/material.dart' show SelectableText;
 import 'package:flutter/widgets.dart';
@@ -6,12 +7,12 @@ import 'package:material_ui/material_ui.dart' as material_ui;
 
 void main() {
   testWidgets('standalone material_ui dropdown has localizations in the app', (tester) async {
-    await tester.pumpWidget(const DshApp(
+    await tester.pumpWidget(ProviderScope(child: DshApp(
       home: material_ui.DropdownButtonFormField<String>(
         items: [material_ui.DropdownMenuItem(value: 'one', child: Text('One'))],
         onChanged: null,
       ),
-    ));
+    )));
     expect(tester.takeException(), isNull);
   });
 
